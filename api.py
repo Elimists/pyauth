@@ -1,17 +1,16 @@
 
-import json
+from shutil import ExecError
 from flask import Flask, request, jsonify
-import re
 from tools import is_password_strong, is_email_valid, encrypt_password, is_name_valid, check_password
-from tools import random_code_generator
+from tools import random_code_generator, password_reset_token_generator
 from UserFactory import UserFactory
 from VerificationCodeFactory import VerificationCodeFactory
+from PasswordResetFactory import PasswordResetFactory
+
 #Look into Flask-Limiter package that can throttle requests
 
 SUPER_SECRET = "Kejth0Bf0zCV92bh8Yxz"
 
-userFactory = UserFactory()
-verificationCodeFactory = VerificationCodeFactory()
 
 app = Flask(__name__)
 
@@ -32,9 +31,6 @@ def register():
     
     if not is_email_valid(jsonData['email']):
         return jsonify({'error': True, 'message': 'Email is not valid!'})
-
-    if userFactory.userAlreadyExistsInDB(jsonData['email']):
-        return jsonify({'error': True, 'message': 'User already exists!'})
     
     if not jsonData['name']:
         return jsonify({'error': True, 'message': 'Name is invalid'})
@@ -47,17 +43,25 @@ def register():
 
     if not is_password_strong(jsonData['password']):
         return jsonify({'error': True, 'message': 'Password is weak!'})
+
+    try:
+        user = UserFactory()
+        verification = VerificationCodeFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Can\'t connect to db.'})
+
+    if user.userAlreadyExistsInDB(jsonData['email']):
+        return jsonify({'error': True, 'message': 'User already exists!'})
     
     hashedPassword = encrypt_password(jsonData['password'])
     verificationCode = random_code_generator()
     try:
-        userFactory.createUser(jsonData['email'], jsonData['name'], hashedPassword)   
+        user.createUser(jsonData['email'], jsonData['name'], hashedPassword)   
     except:
         return jsonify({'error': True, 'message': 'User was NOT created!'})
 
-
     try:
-        verificationCodeFactory.saveVerificationCode(jsonData['email'], verificationCode)
+        verification.saveVerificationCode(jsonData['email'], verificationCode)
     except:
         return jsonify({'error': True, 'message': 'Verification code was NOT saved!'})
     
@@ -83,6 +87,12 @@ def verify():
 
     if not jsonData['email']:
         return jsonify({'error': True, 'message': 'Email cannot be null!'})
+    
+    try:
+        verificationCodeFactory = VerificationCodeFactory()
+        user = UserFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Can\'t reach database!'})
 
     verificationCodeInDb = verificationCodeFactory.getVerificationCode(jsonData['email'])
     if len(verificationCodeInDb) == 0:
@@ -92,7 +102,7 @@ def verify():
         return jsonify({'error': True, 'message': 'Code does not match!'})
     
     try:
-        userFactory.updateUserAccountStatusToVerfied(jsonData['email'])
+        user.updateUserAccountStatusToVerfied(jsonData['email'])
     except:
         return jsonify({'error': True, 'message': 'Could not update the account status!'})
     
@@ -121,19 +131,58 @@ def login():
     if not jsonData['email'] or not jsonData['password']:
         return jsonify({'error': True, 'message': 'Email/Password fields cannot be empty!'})
 
-    if not userFactory.userAlreadyExistsInDB(jsonData['email']):
+    try:
+        user = UserFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Can\'t reach database!'})
+
+    if not user.userAlreadyExistsInDB(jsonData['email']):
         return jsonify({'error': True, 'message': 'User not found. Please register!'})
     
-
-    passwordFromDB = userFactory.getUserPassword(jsonData['email'])[0][0]
+    passwordFromDB = user.getUserPassword(jsonData['email'])[0][0]
  
     if not check_password(jsonData['password'].encode("utf-8"), passwordFromDB.encode("utf-8")):
-        return jsonify({'error': True, 'message': 'Could not authenticate! Incorrect password!'})
+        return jsonify({'error': True, 'message': 'Could not authenticate!'})
     
- 
-    userFactory.updateLastLoggedIn(jsonData['email'])
+    user.updateLastLoggedIn(jsonData['email'])
     return jsonify({'error': False, 'message': 'Authentication successfull!'})
     
+
+@app.route('/reset-password-initial', methods=['POST'])
+def reset_password_initial():
+    if not request.headers.get('Content-Type'):
+        return jsonify({'error': True, 'message': 'Forbidden. Invalid content-type'}), 403
+    
+    jsonData = request.get_json()
+
+    if not jsonData:
+        return jsonify({'error': True, 'message': 'Missing data. Not Acceptable!'})
+    
+    if 'email' not in jsonData or not jsonData['email']:
+        return jsonify({'error': True, 'message': 'Missing data. Not Acceptable!'})
+    
+    try:
+        user = UserFactory()
+        passwordResetFactory = PasswordResetFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Unable to initialize!'})
+    
+    if not user.userAlreadyExistsInDB(jsonData['email']):
+        return jsonify({'error': True, 'message': 'User does not exist!'})
+    
+    randomToken = password_reset_token_generator()
+    passwordResetFactory.savePasswordResetToken(jsonData['email'], randomToken)
+    
+    return jsonify({'error': False, 'message': 'Created reset password key.'})
+
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+
+
+    pass
+
+
 
 @app.route('/special-route', methods=['GET'])
 def authenticated_route():

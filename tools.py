@@ -44,3 +44,9 @@ def check_password(password, hashed):
 def random_code_generator():
     return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
 
+
+def password_reset_token_generator():
+    return ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(14))
+
+
+print(password_reset_token_generator())
