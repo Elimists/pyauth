@@ -9,9 +9,9 @@ class UserFactory:
     def createUser(self, email, name, password):
         sql = {
             'statement': ("INSERT INTO users "
-                            "(email, name, password) "
-                            "VALUES (%s, %s, %s)"),
-            'values': (email, name, password)
+                            "(email, name, password, accountStatus) "
+                            "VALUES (%s, %s, %s, %s)"),
+            'values': (email, name, password, 'Unverified')
         }
         self.db_con.execute(sql)
     
@@ -19,6 +19,15 @@ class UserFactory:
     def getUserByEmail(self, email):
         sql = {
             'statement': ("SELECT email, name FROM users "
+                            "WHERE email = %s"),
+            'values': [email]
+        }
+        return self.db_con.fetch(sql)
+
+
+    def getUserPassword(self, email):
+        sql = {
+            'statement': ("SELECT password FROM users "
                             "WHERE email = %s"),
             'values': [email]
         }
@@ -58,6 +67,16 @@ class UserFactory:
         self.db_con.execute(sql)
 
     
+    def updateUserAccountStatusToVerfied(self, email):
+        sql = {
+            'statement': ("UPDATE users "
+                            "SET accountStatus = %s "
+                            "WHERE email = %s"),
+            'values': ["Verified", email]
+        }
+        self.db_con.execute(sql)
+
+
     def deleteUser(self, email):
         sql = {
             'statement': ("DELETE FROM users "
@@ -67,3 +86,5 @@ class UserFactory:
         self.db_con.execute(sql)
     
 
+uf = UserFactory()
+uf.updateUserAccountStatusToVerfied('ron.weasley@hogwarts.com')

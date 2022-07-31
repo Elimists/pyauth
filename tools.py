@@ -1,4 +1,4 @@
-import string, re
+import string, re, random
 import bcrypt
 
 def has_digits(passwd):
@@ -34,4 +34,13 @@ def is_email_valid(email):
 
 def encrypt_password(password):
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+def check_password(password, hashed):
+    if bcrypt.checkpw(password, hashed):
+        return True
+    return False
+
+
+def random_code_generator():
+    return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
 
