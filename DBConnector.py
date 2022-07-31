@@ -65,6 +65,17 @@ class DBConnector:
         self.con.commit()
         self.__disconnect__()
 
+    
+    def getCurrentDBDateTime(self):
+        result = []
+        self.__connect__()
+        self.cur.execute("SELECT CURRENT_TIMESTAMP()")
+        for item in self.cur:
+            result.append(item)
+        self.cur.close()
+        self.__disconnect__()
+        return result
+
         
 
 

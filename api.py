@@ -6,6 +6,7 @@ from tools import is_password_strong, is_email_valid, encrypt_password, is_name_
 from tools import random_code_generator
 from UserFactory import UserFactory
 from VerificationCodeFactory import VerificationCodeFactory
+#Look into Flask-Limiter package that can throttle requests
 
 SUPER_SECRET = "Kejth0Bf0zCV92bh8Yxz"
 
@@ -126,10 +127,12 @@ def login():
 
     passwordFromDB = userFactory.getUserPassword(jsonData['email'])[0][0]
  
-    if check_password(jsonData['password'].encode("utf-8"), passwordFromDB.encode("utf-8")):
-        return jsonify({'error': False, 'message': 'Authenticated'})
+    if not check_password(jsonData['password'].encode("utf-8"), passwordFromDB.encode("utf-8")):
+        return jsonify({'error': True, 'message': 'Could not authenticate! Incorrect password!'})
     
-    return jsonify({'error': True, 'message': 'Could not authenticate!'})
+ 
+    userFactory.updateLastLoggedIn(jsonData['email'])
+    return jsonify({'error': False, 'message': 'Authentication successfull!'})
     
 
 @app.route('/special-route', methods=['GET'])

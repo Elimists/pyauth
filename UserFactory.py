@@ -77,6 +77,29 @@ class UserFactory:
         self.db_con.execute(sql)
 
 
+
+    def getLastLoggedInDate(self, email):
+        
+        sql={
+            'statement': ("SELECT lastLoggedIn FROM users "
+                            "WHERE email = %s"),
+            'values': [email]
+        }
+        return self.db_con.fetch(sql)
+
+
+    def updateLastLoggedIn(self, email):
+        curDbDateTime = self.db_con.getCurrentDBDateTime()[0][0]
+       
+        sql={
+            'statement': ("UPDATE users "
+                            "SET lastLoggedIn = %s "
+                            "WHERE email = %s"),
+            'values': [curDbDateTime, email]
+        }
+        self.db_con.execute(sql)
+
+
     def deleteUser(self, email):
         sql = {
             'statement': ("DELETE FROM users "
@@ -85,6 +108,4 @@ class UserFactory:
         }
         self.db_con.execute(sql)
     
-
-uf = UserFactory()
-uf.updateUserAccountStatusToVerfied('ron.weasley@hogwarts.com')
+    
