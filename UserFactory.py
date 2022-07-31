@@ -25,6 +25,19 @@ class UserFactory:
         return self.db_con.fetch(sql)
 
     
+    def userAlreadyExistsInDB(self, email):
+        sql = {
+            'statement': ("SELECT email, name FROM users "
+                            "WHERE email = %s"),
+            'values': [email]
+        }
+        result = self.db_con.fetch(sql)
+        if not result or len(result) == 0:
+            return False
+        
+        return True
+
+
     def updateUserName(self, email, name):
         sql = {
             'statement': ("UPDATE users "
@@ -54,4 +67,3 @@ class UserFactory:
         self.db_con.execute(sql)
     
 
-    
