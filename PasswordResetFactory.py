@@ -1,6 +1,4 @@
-import token
 from DBConnector import DBConnector
-from datetime import datetime
 from datetime import timedelta
 
 class PasswordResetFactory:
@@ -21,6 +19,7 @@ class PasswordResetFactory:
             'values': [self.email, passwordResetToken, tokenExpiresOn]
         }
         self.db_con.execute(sql)
+
 
     def updateTokenExpiration(self, passwordResetToken):
         currentDBTime = self.db_con.getCurrentDBDateTime()[0][0] 
@@ -50,8 +49,6 @@ class PasswordResetFactory:
         passResetToken['token'] = result[0][0]
         passResetToken['expiry'] = result[0][0]
         return passResetToken
-    
-
     
 
     def isTokenExpired(self):

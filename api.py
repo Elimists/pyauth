@@ -1,11 +1,13 @@
 
+import json
 from shutil import ExecError
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response, render_template, Response
 from tools import is_password_strong, is_email_valid, encrypt_password, is_name_valid, check_password
-from tools import random_code_generator, password_reset_token_generator
+from tools import random_code_generator, password_reset_token_generator, generate_session_id
 from UserFactory import UserFactory
 from VerificationCodeFactory import VerificationCodeFactory
 from PasswordResetFactory import PasswordResetFactory
+from SessionFactory import SessionFactory
 
 #Look into Flask-Limiter package that can throttle requests
 
@@ -111,7 +113,7 @@ def verify():
     except:
         return jsonify({'error': True, 'message': 'Could not delete verification code from db!'})
     
-    return jsonify({'error': False, 'message': 'User Verified successfully! Updated account status and deleted verification code.'})
+    return jsonify({'error': False, 'message': 'Email address is now verified!'})
     
 
 @app.route('/login', methods=['POST'])
@@ -133,19 +135,44 @@ def login():
 
     try:
         user = UserFactory()
+        sessionFactory = SessionFactory()
     except:
-        return jsonify({'error': True, 'message': 'Can\'t reach database!'})
+        return jsonify({'error': True, 'message': 'Can\'t initialize db tables!'})
 
     if not user.userAlreadyExistsInDB(jsonData['email']):
         return jsonify({'error': True, 'message': 'User not found. Please register!'})
     
     passwordFromDB = user.getUserPassword(jsonData['email'])[0][0]
- 
     if not check_password(jsonData['password'].encode("utf-8"), passwordFromDB.encode("utf-8")):
         return jsonify({'error': True, 'message': 'Could not authenticate!'})
     
+    if not user.userIsVerfied(jsonData['email']):
+        return jsonify({'error': True, 'message': 'User is not yet verfied! Check email!'})
+    
+    if user.userIsLocked(jsonData['email']):
+        return jsonify({'error': True, 'message': 'User\'s account is locked!'})
+
+    
+    
+
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        ipAddress = request.environ['REMOTE_ADDR']
+    else:
+        ipAddress = request.environ['HTTP_X_FORWARDED_FOR']
+
+    
+    generatedSessionId = generate_session_id()
+    sessionFactory.createSession(generatedSessionId, jsonData['email'], ipAddress)
+    res = make_response(jsonify({'error': False, 'message': 'Authentication successfull!'}))
+    res.set_cookie(
+            key="appSessionId", 
+            value=generatedSessionId,
+            expires= sessionFactory.getSessionExpiryTime(generatedSessionId),
+            secure=False,
+            httponly=True
+            )
     user.updateLastLoggedIn(jsonData['email'])
-    return jsonify({'error': False, 'message': 'Authentication successfull!'})
+    return res
     
 
 @app.route('/reset-password-initial', methods=['POST'])
@@ -253,32 +280,105 @@ def delete_user():
     except:
         return jsonify({'error': True, 'message': 'Can\'t delete user!'})
 
-    return jsonify({'error': False, 'message': 'User deleted'})
+    """
+    TODO:
+    Invalidate cookie on client side.
+    """
+    res = make_response(jsonify({'error': False, 'message': 'Invalidated cookies!'}))
+    res.set_cookie(
+        key="appSessionId", 
+        value='',
+        expires=0,
+        secure=False,
+        httponly=True
+    )
+    return res
 
+
+@app.route('/logout', methods=['GET'])
+def logout():
+
+    if not request.cookies.get('appSessionId'):
+        return jsonify({'error': True, 'message': 'Missing cookies'})
+    
+    cookieSessionId = request.cookies.get('appSessionId')
+
+    try:
+        sessionFactory = SessionFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Can\'t initialize session!'})
+    
+    if not sessionFactory.sessionIdExists(cookieSessionId):
+        res = make_response(jsonify({'error': False, 'message': 'Invalidated cookies!'}))
+        res.set_cookie(
+            key="appSessionId", 
+            value='',
+            expires=0,
+            secure=False,
+            httponly=True
+        )
+        return res
+    
+   
+    sessionFactory.deleteSession(cookieSessionId)
+    res = make_response(jsonify({'error': False, 'message': 'Invalidated cookies!'}))
+    res.set_cookie(
+        key="appSessionId", 
+        value='',
+        expires=0,
+        secure=False,
+        httponly=True
+    )
+    return res
+    
 
 @app.route('/is-user-authorized', methods=['GET'])
-def authenticated_route():
+def is_user_authorized():
 
-    if not request.headers.get('Content-Type'):
-        return jsonify({'error': True, 'status_code': 403, 'message': 'Forbidden. Invalid content-type'}), 403
+    if not request.cookies.get('appSessionId'):
+        return jsonify({'error': True, 'message': 'Not Authorized! Please log in!'})
 
-    if not request.headers.get('App-Session-Id'):
-        return jsonify({'error': True, 'status_code': 403, 'message': 'Unauthorized'}), 403
-
-    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
-        ipAddress = request.environ['REMOTE_ADDR']
-    else:
-        ipAddress = request.environ['HTTP_X_FORWARDED_FOR']
-
-    headerSessionId = request.headers.get('App-Session-Id')
-
-    # Check if session exists in db
+    cookieSessionId = request.cookies.get('appSessionId')
+    try:
+        sessionFactory = SessionFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Can\'t initialize session!'})
+    
+    # Check if session exists
+    if not sessionFactory.sessionIdExists(cookieSessionId):
+        return jsonify({'error': True, 'message': 'Session doesn\'t exist!'})
 
     # Check if session has expired
+    if sessionFactory.sessionHasExpired(cookieSessionId):
+        sessionFactory.deleteSession(cookieSessionId)
+        res = make_response(jsonify({'error': True, 'message': 'Cookie has expired'}))
+        res.set_cookie(
+            key="appSessionId", 
+            value='',
+            expires=0,
+            secure=False,
+            httponly=True
+        )
+        return res
+
+    # Check if session is about to expire
+    if sessionFactory.isSessionAboutToExpire(cookieSessionId):
+        sessionFactory.addHoursToSesionExpiryTime(cookieSessionId, 1)
+        sessionData = sessionFactory.getSessionData(cookieSessionId)
+        res = make_response(jsonify({'error': False, 'message': 'User is authorized'}))
+        res.set_cookie(
+            key="appSessionId", 
+            value=sessionData['sessionId'],
+            expires=sessionData['expiresOn'],
+            secure=False,
+            httponly=True
+            )
+        return res
+    
+    res = make_response(jsonify({'error': False, 'message': 'User is authorized'}))
+    return res
 
 
-
-    return jsonify({'error': False, 'message': 'Session-Id present in header!', 'session-id': headerSessionId, 'ip-address': ipAddress})
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -100,6 +100,30 @@ class UserFactory:
         self.db_con.execute(sql)
 
 
+    def userIsVerfied(self, email):
+        sql = {
+            'statement': ("SELECT accountStatus FROM users "
+                            "WHERE email = %s"),
+            'values': [email]
+        }
+        result =  self.db_con.fetch(sql)[0][0]
+        if result == None or result == "Unverified":
+            return False
+        return True
+
+    
+    def userIsLocked(self, email):
+        sql = {
+            'statement': ("SELECT accountStatus FROM users "
+                            "WHERE email = %s"),
+            'values': [email]
+        }
+        result =  self.db_con.fetch(sql)[0][0]
+        if result != "Locked":
+            return False
+        return True
+
+
     def deleteUser(self, email):
         sql = {
             'statement': ("DELETE FROM users "
@@ -109,3 +133,5 @@ class UserFactory:
         self.db_con.execute(sql)
     
     
+uf = UserFactory()
+uf.userIsVerfied("mmc.autobot@gmail.com")

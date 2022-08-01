@@ -1,4 +1,5 @@
 import string, re, random
+import secrets
 import bcrypt
 
 def has_digits(passwd):
@@ -47,4 +48,8 @@ def random_code_generator():
 
 def password_reset_token_generator():
     return ''.join(random.SystemRandom().choice(string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(14))
+
+
+def generate_session_id():
+    return secrets.token_urlsafe(16)
 
