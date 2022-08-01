@@ -1,4 +1,4 @@
-from DBConnector import DBConnector
+from .DBConnector import DBConnector
 from datetime import timedelta
 
 class PasswordResetFactory:

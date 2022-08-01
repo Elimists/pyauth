@@ -1,4 +1,4 @@
-from DBConnector import DBConnector
+from .DBConnector import DBConnector
 
 class VerificationCodeFactory:
 
