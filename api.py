@@ -163,7 +163,7 @@ def reset_password_initial():
     
     try:
         user = UserFactory()
-        passwordResetFactory = PasswordResetFactory()
+        passwordResetFactory = PasswordResetFactory(jsonData['email'])
     except:
         return jsonify({'error': True, 'message': 'Unable to initialize!'})
     
@@ -171,29 +171,114 @@ def reset_password_initial():
         return jsonify({'error': True, 'message': 'User does not exist!'})
     
     randomToken = password_reset_token_generator()
-    passwordResetFactory.savePasswordResetToken(jsonData['email'], randomToken)
+    tokenData = passwordResetFactory.getPasswordResetTokenData()
+    if tokenData['token']:
+        if passwordResetFactory.isTokenExpired():
+            try:
+                passwordResetFactory.updateTokenExpiration(randomToken)
+                return jsonify({'error': False, 'message': 'Token update.'})
+            except:
+                return jsonify({'error': True, 'message': 'Unable to update token.'})
+        else:
+            return jsonify({'error': True, 'message': 'Token is not expired yet. Please check your email'})
     
-    return jsonify({'error': False, 'message': 'Created reset password key.'})
+    try:
+        passwordResetFactory.savePasswordResetToken(randomToken)
+    except:
+        return jsonify({'error': True, 'message': 'Encountered error while trying to save token!'})
+    
+    return jsonify({'error': False, 'message': 'Created reset password key.', 'token': randomToken})
 
 
-@app.route('/reset-password', methods=['POST'])
-def reset_password():
+@app.route('/reset-password/<token>', methods=['POST'])
+def reset_password(token):
+    if not token:
+        return jsonify({'error': True, 'message': 'Password reset token is missing'})
+    
+    jsonData = request.get_json()
+
+    if not 'email' in jsonData or not jsonData['email']:
+        return jsonify({'error': True, 'message': 'Missing data. Not Acceptable'})
+    if not 'password' in jsonData or not jsonData['password']:
+        return jsonify({'error': True, 'message': 'Missing data. Not Acceptable'})
+    if not is_password_strong(jsonData['password']):
+        return jsonify({'error': True, 'message': 'Password is weak!'})
+
+    try:
+        passwordResetFactory = PasswordResetFactory(jsonData['email'])
+        user = UserFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Unable to initialize'})
+    
+    tokenData = passwordResetFactory.getPasswordResetTokenData()
+    if not tokenData['token']:
+        return jsonify({'error': True, 'message': 'User has not initiated a password reset!'})
+
+    if passwordResetFactory.isTokenExpired():
+        return jsonify({'error': True, 'message': 'Token has expired! Please resubmit anouther request!'})
+
+    if tokenData['token'] != token:
+        return jsonify({'error': True, 'message': 'Token doesn\'t match!'})
+
+    if not user.userAlreadyExistsInDB(jsonData['email']):
+        return jsonify({'error': True, 'message': 'Hmmm... User not found!'})
+
+    hashedPassword = encrypt_password(jsonData['password'])
+    try:
+        user.updateUserPassword(jsonData['email'], hashedPassword)
+        passwordResetFactory.deleteTokenData()
+    except:
+        return jsonify({'error': True, 'message': 'Could not update password for the user!'})
+    
+    return jsonify({'error': False, 'message': 'Password changed successfully'})
+    
+
+@app.route('/delete-user', methods=['POST'])
+def delete_user():
+
+    jsonData = request.get_json()
+    if not 'email' in jsonData or not jsonData['email'] or not jsonData:
+        return jsonify({'error': True, 'message': 'Missing data. Not Acceptable!'})
+    
+    try:
+        user = UserFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Cannot initialize user table!'})
+    
+    if not user.userAlreadyExistsInDB(jsonData['email']):
+        return jsonify({'error': True, 'message': 'User does not exist!'})
+    
+    try:
+        user.deleteUser(jsonData['email'])
+    except:
+        return jsonify({'error': True, 'message': 'Can\'t delete user!'})
+
+    return jsonify({'error': False, 'message': 'User deleted'})
 
 
-    pass
-
-
-
-@app.route('/special-route', methods=['GET'])
+@app.route('/is-user-authorized', methods=['GET'])
 def authenticated_route():
 
     if not request.headers.get('Content-Type'):
         return jsonify({'error': True, 'status_code': 403, 'message': 'Forbidden. Invalid content-type'}), 403
 
-    if not request.headers.get('Session-Id'):
-        return jsonify({'error': True, 'status_code': 403, 'message': 'Forbidden'}), 403
+    if not request.headers.get('App-Session-Id'):
+        return jsonify({'error': True, 'status_code': 403, 'message': 'Unauthorized'}), 403
 
-    return jsonify({'error': False, 'message': 'Session-Id present in header!'})
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        ipAddress = request.environ['REMOTE_ADDR']
+    else:
+        ipAddress = request.environ['HTTP_X_FORWARDED_FOR']
+
+    headerSessionId = request.headers.get('App-Session-Id')
+
+    # Check if session exists in db
+
+    # Check if session has expired
+
+
+
+    return jsonify({'error': False, 'message': 'Session-Id present in header!', 'session-id': headerSessionId, 'ip-address': ipAddress})
 
 if __name__ == "__main__":
     app.run(debug=True)

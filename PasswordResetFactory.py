@@ -1,3 +1,4 @@
+import token
 from DBConnector import DBConnector
 from datetime import datetime
 from datetime import timedelta
@@ -21,7 +22,19 @@ class PasswordResetFactory:
         }
         self.db_con.execute(sql)
 
-    
+    def updateTokenExpiration(self, passwordResetToken):
+        currentDBTime = self.db_con.getCurrentDBDateTime()[0][0] 
+        tokenExpiresOn = currentDBTime + timedelta(minutes=30)
+
+        sql = {
+            'statement': ("UPDATE password_reset_keys "
+                            "SET passwordResetToken = %s, tokenExpiresOn = %s "
+                            "WHERE userEmail = %s"),
+            'values': [passwordResetToken, tokenExpiresOn, self.email]
+        }
+
+        self.db_con.execute(sql)
+
     def getPasswordResetTokenData(self):
         sql = {
             'statement': ("SELECT passwordResetToken, tokenExpiresOn FROM password_reset_keys "
@@ -29,12 +42,40 @@ class PasswordResetFactory:
             'values': [self.email]
         }
 
+        passResetToken = {'token': None, 'expiry': None}
         result = self.db_con.fetch(sql)
-        passwordResetTokenData = {
-            'token': result[0][0],
-            'expiry': result[0][1]
-        }
-        return passwordResetTokenData
+        if not result or len(result) == 0:
+            return passResetToken
+        
+        passResetToken['token'] = result[0][0]
+        passResetToken['expiry'] = result[0][0]
+        return passResetToken
     
 
     
+
+    def isTokenExpired(self):
+        currentDBTime = self.db_con.getCurrentDBDateTime()[0][0]
+        sql = {
+            'statement': ("SELECT tokenExpiresOn From password_reset_keys "
+                            "WHERE userEmail = %s"),
+            'values': [self.email]
+        }
+        
+        tokenExpiryTime = self.db_con.fetch(sql)[0][0]
+        if currentDBTime > tokenExpiryTime:
+            return True
+        return False
+    
+
+    def deleteTokenData(self):
+        sql = {
+            'statement': ("DELETE FROM password_reset_keys "
+                            "WHERE userEmail = %s"),
+            'values': [self.email]
+        }
+
+        self.db_con.execute(sql)
+
+#prf = PasswordResetFactory("pranp@neilsquire.ca")
+#print(prf.isTokenExpired())
