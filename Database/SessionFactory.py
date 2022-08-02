@@ -1,3 +1,4 @@
+from cgitb import reset
 from .DBConnector import DBConnector
 from datetime import timedelta
 
@@ -109,6 +110,28 @@ class SessionFactory:
             return True
         return False
     
+
+    def getSessionDataByEmailAndIp(self, email, ipAddress):
+        sql = {
+            'statement': ("SELECT sessionId, ipAddress, expiresOn FROM sessions "
+                            "WHERE userEmail = %s AND ipAddress = %s "
+                            "ORDER BY createdOn DESC "
+                            "LIMIT 1"),
+            'values': [email, ipAddress]
+        }
+
+        result = self.db_con.fetch(sql)
+        
+        if len(result) == 0:
+            return None
+        
+        sessionData = {
+            'sessionId': result[0][0],
+            'ipAddress': result[0][1],
+            'expiresOn': result[0][2],
+        }
+        return sessionData
+
     
     def deleteSession(self, sessionId):
         sql = {
@@ -124,4 +147,4 @@ sf = SessionFactory()
 #sf.createSession('akdurklwkKlkjd', 'pranp@neilsquire.ca', '127.0.0.1')
 #sf.isSessionAboutToExpire('akdurklwkKlkjd')
 #print(sf.sessionHasExpired('akdurklwkKlkjd'))
-print(sf.getSessionExpiryTime("akdurklwkKlkjd"))
+sf.getSessionDataByEmailAndIp("albus.dumbledore@hogwarts.mg", "127.0.0.1")
