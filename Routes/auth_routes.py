@@ -1,7 +1,9 @@
-from flask import Flask, request, jsonify, make_response
+from flask import request, jsonify, make_response
 from Routes import Routes
 from Tools import GeneratorTools as gt, PasswordTools as pt, StringTools as st
 from Database import UserFactory, VerificationCodeFactory, SessionFactory, PasswordResetFactory
+
+CLIENT_DOMAIN = '127.0.0.1:5500'
 
 @Routes.route('/signup', methods=['POST'])
 def register():
@@ -138,27 +140,25 @@ def login():
     
     if user.userIsLocked(jsonData['email']):
         return jsonify({'error': True, 'message': 'User\'s account is locked!'})
-
     
-    
+    sessionData = sessionFactory.getSessionDataByEmailAndIp(jsonData['email'], getPublicIpAddressOfClient())
+    if sessionData != None:
+        sessionFactory.deleteSession(sessionData['sessionId'])
 
-    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
-        ipAddress = request.environ['REMOTE_ADDR']
-    else:
-        ipAddress = request.environ['HTTP_X_FORWARDED_FOR']
-
-    
+    # generate new session      
     generatedSessionId = gt.generate_session_id()
-    sessionFactory.createSession(generatedSessionId, jsonData['email'], ipAddress)
+    sessionFactory.createSession(generatedSessionId, jsonData['email'], getPublicIpAddressOfClient())
     res = make_response(jsonify({'error': False, 'message': 'Authentication successfull!'}))
     res.set_cookie(
             key="appSessionId", 
             value=generatedSessionId,
             expires= sessionFactory.getSessionExpiryTime(generatedSessionId),
             secure=False,
-            httponly=True
+            httponly=True,
+            domain=CLIENT_DOMAIN
             )
     user.updateLastLoggedIn(jsonData['email'])
+    #res.headers.add('Access-Control-Allow-Origin', '127.0.0.1:5500')
     return res
     
 
@@ -302,19 +302,12 @@ def logout():
         return jsonify({'error': True, 'message': 'Can\'t initialize session!'})
     
     if not sessionFactory.sessionIdExists(cookieSessionId):
-        res = make_response(jsonify({'error': False, 'message': 'Invalidated cookies!'}))
-        res.set_cookie(
-            key="appSessionId", 
-            value='',
-            expires=0,
-            secure=False,
-            httponly=True
-        )
+        res = make_response(jsonify({'error': True, 'message': 'Did not receive any cookie!'}))
         return res
     
    
     sessionFactory.deleteSession(cookieSessionId)
-    res = make_response(jsonify({'error': False, 'message': 'Invalidated cookies!'}))
+    res = make_response(jsonify({'error': False, 'message': 'Logged out!'}))
     res.set_cookie(
         key="appSessionId", 
         value='',
@@ -371,3 +364,9 @@ def is_user_authorized():
     res = make_response(jsonify({'error': False, 'message': 'User is authorized'}))
     return res
 
+
+def getPublicIpAddressOfClient():
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        return request.environ['REMOTE_ADDR']
+    else:
+        return request.environ['HTTP_X_FORWARDED_FOR']
