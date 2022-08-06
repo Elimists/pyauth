@@ -133,5 +133,5 @@ class UserFactory:
         self.db_con.execute(sql)
     
     
-uf = UserFactory()
-uf.userIsVerfied("mmc.autobot@gmail.com")
+#uf = UserFactory()
+#uf.userIsVerfied("mmc.autobot@gmail.com")
