@@ -3,7 +3,6 @@ from flask import request, jsonify, make_response
 from Database import SessionFactory
 
 
-
 def is_user_authorized(f):
     
     @wraps(f)

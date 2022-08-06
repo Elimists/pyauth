@@ -139,15 +139,36 @@ def login():
     # generate new session      
     generatedSessionId = gt.generate_session_id()
     sessionFactory.createSession(generatedSessionId, jsonData['email'], getPublicIpAddressOfClient())
+    listOfCookies = [
+        {
+            'key': "appSessionId", 
+            'value':generatedSessionId,
+            'expires': sessionFactory.getSessionExpiryTime(generatedSessionId),
+            'secure':False,
+            'httponly':True,
+            'domain':CLIENT_DOMAIN  
+        },
+        {
+            'key': "appUserEmail", 
+            'value':jsonData['email'],
+            'expires': sessionFactory.getSessionExpiryTime(generatedSessionId),
+            'secure':False,
+            'httponly':True,
+            'domain':CLIENT_DOMAIN  
+        }
+    ]
+    
     res = make_response(jsonify({'error': False, 'message': 'Authentication successfull!'}))
-    res.set_cookie(
-            key="appSessionId", 
-            value=generatedSessionId,
-            expires= sessionFactory.getSessionExpiryTime(generatedSessionId),
-            secure=False,
-            httponly=True,
-            domain=CLIENT_DOMAIN
-            )
+    for cookie in listOfCookies:
+        
+        res.set_cookie(
+                key=cookie['key'], 
+                value=cookie['value'],
+                expires=cookie['expires'],
+                secure=cookie['secure'],
+                httponly=cookie['httponly'],
+                domain=cookie['domain']
+                )
     user.updateLastLoggedIn(jsonData['email'])
     #res.headers.add('Access-Control-Allow-Origin', '127.0.0.1:5500')
     return res
@@ -270,15 +291,36 @@ def delete_user():
     except:
         return jsonify({'error': True, 'message': 'Can\'t delete user!'})
 
+    
+    listOfCookies = [
+        {
+            'key': "appSessionId", 
+            'value':"",
+            'expires': 0,
+            'secure':False,
+            'httponly':True,
+            'domain':CLIENT_DOMAIN  
+        },
+        {
+            'key': "appUserEmail", 
+            'value':"",
+            'expires': 0,
+            'secure':False,
+            'httponly':True,
+            'domain':CLIENT_DOMAIN  
+        }
+    ]
     #Invalidate cookie on client side.
     res = make_response(jsonify({'error': False, 'message': 'Invalidated cookies! User Deleted!'}))
-    res.set_cookie(
-        key="appSessionId", 
-        value='',
-        expires=0,
-        secure=False,
-        httponly=True
-    )
+    for cookie in listOfCookies:
+        res.set_cookie(
+            key=cookie['key'], 
+            value=cookie['value'],
+            expires=cookie['expires'],
+            secure=cookie['secure'],
+            httponly=cookie['httponly'],
+            domain=cookie['domain']
+        )
     return res
 
 
@@ -301,21 +343,38 @@ def logout():
     
    
     sessionFactory.deleteSession(cookieSessionId)
-    res = make_response(jsonify({'error': False, 'message': 'Logged out!'}))
-    res.set_cookie(
-        key="appSessionId", 
-        value='',
-        expires=0,
-        secure=False,
-        httponly=True
-    )
+    
+    listOfCookies = [
+        {
+            'key': "appSessionId", 
+            'value':"",
+            'expires': 0,
+            'secure':False,
+            'httponly':True,
+            'domain':CLIENT_DOMAIN  
+        },
+        {
+            'key': "appUserEmail", 
+            'value':"",
+            'expires': 0,
+            'secure':False,
+            'httponly':True,
+            'domain':CLIENT_DOMAIN  
+        }
+    ]
+    #Invalidate cookie on client side.
+    res = make_response(jsonify({'error': False, 'message': 'User logged out!'}))
+    for cookie in listOfCookies:
+        res.set_cookie(
+            key=cookie['key'], 
+            value=cookie['value'],
+            expires=cookie['expires'],
+            secure=cookie['secure'],
+            httponly=cookie['httponly'],
+            domain=cookie['domain']
+        )
     return res
     
-
-@Routes.route('/some-authorized-route', methods=['GET'])
-@is_user_authorized
-def some_authorized_route():
-    return make_response(jsonify({'error': False, 'message': 'Some Error'}))
 
 
 def getPublicIpAddressOfClient():

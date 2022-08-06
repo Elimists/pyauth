@@ -1,5 +1,3 @@
-from .DBConnector import DBConnector
-from .PasswordResetFactory import PasswordResetFactory
-from .SessionFactory import SessionFactory
-from .UserFactory import UserFactory
-from .VerificationCodeFactory import VerificationCodeFactory
+from mysqlx import DbDoc
+from .UserSchema import PasswordResetFactory, SessionFactory, UserFactory, VerificationCodeFactory, DBConnector
+from .EventSchema import DBConnector, EventFactory
