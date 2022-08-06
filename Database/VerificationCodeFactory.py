@@ -1,3 +1,4 @@
+from unittest import result
 from .DBConnector import DBConnector
 
 class VerificationCodeFactory:
@@ -31,8 +32,12 @@ class VerificationCodeFactory:
                             "WHERE userEmail = %s"),
             'values': [email]
         }
-        return self.db_con.fetch(sql)
+
+        result = self.db_con.fetch(sql)
+        if len(result) == 0:
+            return None
         
+        return {'verificationCode': result[0][0]}
 
     def deleteVerificationCode(self, email):
         sql = {
