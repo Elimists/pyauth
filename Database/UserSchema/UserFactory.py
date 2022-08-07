@@ -1,40 +1,50 @@
 from .DBConnector import DBConnector
 
+
 class UserFactory:
 
     def __init__(self):
         self.db_con = DBConnector()
 
 
-    def createUser(self, email, name, password):
+    def createUser(self, email: str, name: str, password: str):
         sql = {
             'statement': ("INSERT INTO users "
                             "(email, name, password, accountStatus) "
                             "VALUES (%s, %s, %s, %s)"),
             'values': (email, name, password, 'Unverified')
         }
+        
         self.db_con.execute(sql)
-    
+     
 
-    def getUserByEmail(self, email):
+    def getUserByEmail(self, email: str):
         sql = {
             'statement': ("SELECT email, name FROM users "
                             "WHERE email = %s"),
             'values': [email]
         }
-        return self.db_con.fetch(sql)
+        try:
+            return self.db_con.fetch(sql)
+        except Exception as e:
+            errorDict = e.__dict__
+            return {'error': True, 'message': 'Database error!', 'code': errorDict['errno']}
 
 
-    def getUserPassword(self, email):
+    def getUserPassword(self, email: str):
         sql = {
             'statement': ("SELECT password FROM users "
                             "WHERE email = %s"),
             'values': [email]
         }
-        return self.db_con.fetch(sql)
+        try:
+            return self.db_con.fetch(sql)
+        except Exception as e:
+            errorDict = e.__dict__
+            return {'error': True, 'message': 'Database error!', 'code': errorDict['errno']}
 
     
-    def userAlreadyExistsInDB(self, email):
+    def userAlreadyExistsInDB(self, email: str):
         sql = {
             'statement': ("SELECT email, name FROM users "
                             "WHERE email = %s"),
@@ -47,48 +57,65 @@ class UserFactory:
         return True
 
 
-    def updateUserName(self, email, name):
+    def updateUserName(self, email: str, name: str):
         sql = {
             'statement': ("UPDATE users "
                             "SET name = %s "
                             "WHERE email = %s"),
             'values':[name, email]
         }
-        self.db_con.execute(sql)
+        try:
+            self.db_con.execute(sql)
+            return {'error': False, 'message': 'User name updated successfully!', 'code': 8008}
+        except Exception as e:
+            errorDict = e.__dict__
+            return {'error': True, 'message': 'Database error!', 'code': errorDict['errno']}
 
 
-    def updateUserPassword(self, email, password):
+    def updateUserPassword(self, email: str, password: str):
         sql = {
             'statement': ("UPDATE users "
                             "SET password = %s "
                             "WHERE email = %s"),
             'values': [password, email]
         }
-        self.db_con.execute(sql)
+        try:
+            self.db_con.execute(sql)
+            return {'error': False, 'message': 'User Password updated successfully', 'code': 8008}
+        except Exception as e:
+            errorDict = e.__dict__
+            return {'error': False, 'message': 'Database error!', 'code': errorDict['error']}
 
     
-    def updateUserAccountStatusToVerfied(self, email):
+    def updateUserAccountStatusToVerfied(self, email: str):
         sql = {
             'statement': ("UPDATE users "
                             "SET accountStatus = %s "
                             "WHERE email = %s"),
             'values': ["Verified", email]
         }
-        self.db_con.execute(sql)
+        try:
+            self.db_con.execute(sql)
+            return {'error':False, 'message': 'Updated user account status to verified', 'code': 8008}
+        except Exception as e:
+            errorDict = e.__dict__
+            return {'error':True, 'message': 'Database error!', 'code': errorDict['errno']}
 
 
-
-    def getLastLoggedInDate(self, email):
-        
+    def getLastLoggedInDate(self, email: str):
         sql={
             'statement': ("SELECT lastLoggedIn FROM users "
                             "WHERE email = %s"),
             'values': [email]
         }
-        return self.db_con.fetch(sql)
+        try:
+            return self.db_con.fetch(sql)
+        except Exception as e:
+            errorDict = e.__dict__
+            return {'error':True, 'message': 'Database error!', 'code': errorDict['errno']}
 
 
-    def updateLastLoggedIn(self, email):
+    def updateLastLoggedIn(self, email: str):
         curDbDateTime = self.db_con.getCurrentDBDateTime()[0][0]
        
         sql={
@@ -98,9 +125,9 @@ class UserFactory:
             'values': [curDbDateTime, email]
         }
         self.db_con.execute(sql)
+            
 
-
-    def userIsVerfied(self, email):
+    def userIsVerfied(self, email: str) -> bool:
         sql = {
             'statement': ("SELECT accountStatus FROM users "
                             "WHERE email = %s"),
@@ -112,7 +139,7 @@ class UserFactory:
         return True
 
     
-    def userIsLocked(self, email):
+    def userIsLocked(self, email :str) -> bool:
         sql = {
             'statement': ("SELECT accountStatus FROM users "
                             "WHERE email = %s"),
@@ -124,14 +151,11 @@ class UserFactory:
         return True
 
 
-    def deleteUser(self, email):
+    def deleteUser(self, email: str):
         sql = {
             'statement': ("DELETE FROM users "
                             "WHERE email = %s"),
             'values': [email]
         }
         self.db_con.execute(sql)
-    
-    
-#uf = UserFactory()
-#uf.userIsVerfied("mmc.autobot@gmail.com")
+          
