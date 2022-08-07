@@ -136,17 +136,17 @@ def login():
         return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
 
     if not user.userAlreadyExistsInDB(jsonData['email']):
-        return jsonify({'error': True, 'message': 'User not found. Please register!'})
+        return jsonify({'error': True, 'message': 'User not found. Please register!', 'code': 'DOES_NOT_EXIST'})
     
     passwordFromDB = user.getUserPassword(jsonData['email'])[0][0]
     if not pt(jsonData['password'].encode("utf-8")).check_password(passwordFromDB.encode("utf-8")):
-        return jsonify({'error': True, 'message': 'Incorrect credentials!'})
+        return jsonify({'error': True, 'message': 'Incorrect credentials!', 'code': 'INCORRECT_CREDENTIALS'})
     
     if not user.userIsVerfied(jsonData['email']):
-        return jsonify({'error': True, 'message': 'User is not yet verfied! Check email!'})
+        return jsonify({'error': True, 'message': 'User is not yet verfied! Check email!', 'code': 'NOT_VERIFIED'})
     
     if user.userIsLocked(jsonData['email']):
-        return jsonify({'error': True, 'message': 'User\'s account is locked!'})
+        return jsonify({'error': True, 'message': 'User\'s account is locked!', 'code': 'ACCOUNT_LOCKED'})
     
     sessionData = sessionFactory.getSessionDataByEmailAndIp(jsonData['email'], getPublicIpAddressOfClient())
     if sessionData != None:
@@ -174,7 +174,7 @@ def login():
         }
     ]
     
-    res = make_response(jsonify({'error': False, 'message': 'Authentication successfull!'}))
+    res = make_response(jsonify({'error': False, 'message': 'Authentication successfull!', 'code': 'SUCCESS'}))
     for cookie in listOfCookies:
         
         res.set_cookie(
@@ -186,7 +186,6 @@ def login():
                 domain=cookie['domain']
                 )
     user.updateLastLoggedIn(jsonData['email'])
-    #res.headers.add('Access-Control-Allow-Origin', '127.0.0.1:5500')
     return res
     
 
