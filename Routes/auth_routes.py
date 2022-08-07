@@ -2,122 +2,138 @@ from flask import request, jsonify, make_response
 from Routes import Routes
 from Tools import GeneratorTools as gt, PasswordTools as pt, StringTools as st
 from Database import UserFactory, VerificationCodeFactory, SessionFactory, PasswordResetFactory
-from ErrorHandler import ErrorHandler as err
-from functools import wraps
-from Decorators import is_user_authorized
 
 CLIENT_DOMAIN = '127.0.0.1:5500'
 
 @Routes.route('/signup', methods=['POST'])
 def register():
     
+    if not request.headers.get('Content-Type'):
+        return jsonify({'error': True, 'message': 'Missing required headers!', 'code': 'MISSING_REQUIRED_HEADERS'})
+    
     jsonData = request.get_json()
 
     if not jsonData or 'email' not in jsonData or 'name' not in jsonData or 'password' not in jsonData:
-        return err.packet(True, 1000, "Inccorrect form submsision!")
+        return jsonify({'error': True, 'message': 'Not accepted!', 'code': 'MISSING_REQUIRED_KEYS'})
 
     if not jsonData['email'] or not jsonData['name'] or not jsonData['password']:
-        return err.packet(True, 1001, "Missing required values. Not acceptable!")
+        return jsonify({'error': True, 'message': 'Empty values in input field', 'code': 'MISSING_REQUIRED_VALUES'})
+    
+    if not isinstance(jsonData['email'], str) or not isinstance(jsonData['name'], str) or not isinstance(jsonData['password'], str):
+        return jsonify({'error': True, 'message': 'Recieved invalid value type!', 'code': 'INVALID_TYPE'})
     
     emailCheck = st(jsonData['email'])
     if not emailCheck.is_email_valid():
-        return err.packet(True, 1002, "Email is not valid!")
+        return jsonify({'error': True, 'message': 'Email is not valid!', 'code': 'INVALID_EMAIL'})
 
     nameCheck = st(jsonData['name'])
     if not nameCheck.is_name_valid():
-        return err.packet(True, 1003, "Name is not valid!")
+        return jsonify({'error': True, 'message': 'Name is not valid!', 'code': 'INVALID_NAME'})
 
     passwordString = pt(jsonData['password'])
     if not passwordString.is_password_strong():
-        return err.packet(True, 1004, "Password is not strong enough!")
+        return jsonify({'error': True, 'message': 'Password needs to be stronger!', 'code': 'INVALID_PASSWORD'})
 
     try:
         user = UserFactory()
         verification = VerificationCodeFactory()
     except:
-        return err.packet(True, 5000, "Couldn't initialize tables!")
+        return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
 
     if user.userAlreadyExistsInDB(jsonData['email']):
-        return err.packet(True, 5001, "User already exists! Please log in!")
+        return jsonify({'error': True, 'message': 'User already exists!', 'code': 'DUPLICATE_USER'})
     
     hashedPassword = passwordString.encrypt_password()
     verificationCode = gt.verification_code_generator()
+  
     try:
-        user.createUser(jsonData['email'], jsonData['name'], hashedPassword)   
+        user.createUser(jsonData['email'], jsonData['name'], hashedPassword)
     except:
-        return err.packet(True, 5000, "Couldn't initialize tables!")
-
+        return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
+    
     try:
         verification.saveVerificationCode(jsonData['email'], verificationCode)
     except:
-        return err.packet(True, 5000, "Couldn't initialize tables!")
+        user.deleteUser(jsonData['email'])
+        return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
     
-    return err.packet(False, 2000, "Signed up successfull! Please check email for a verification code!")
+    return jsonify({'error': False, 'message': 'User created successfully!', 'code': 'SUCCESS'})
 
 
 @Routes.route('/verify', methods=['POST'])
 def verify():
 
     if not request.headers.get('Content-Type'):
-        return err.packet(True, 999, "Missing required headers")
+        return jsonify({'error': True, 'message': 'Missing required headers!', 'code': 'MISSING_REQUIRED_HEADERS'})
 
     jsonData = request.get_json()
+    
 
     if not jsonData or 'verificationCode' not in jsonData or 'email' not in jsonData:
-        return jsonify({'error': True, 'message': 'Missing data. Not acceptable!'})
+        return jsonify({'error': True, 'message': 'Not accepted!', 'code': 'MISSING_REQUIRED_KEYS'})
     
     if not jsonData['verificationCode'] or not jsonData['email']:
-        return jsonify({'error': True, 'message': 'Recieved empty fields! Not acceptable!'})
+        return jsonify({'error': True, 'message': 'Empty values in input field', 'code': 'MISSING_REQUIRED_VALUES'})
+    
+    if not isinstance(jsonData['email'], str) or not isinstance(jsonData['verificationCode'], str):
+        return jsonify({'error': True, 'message': 'Recieved invalid value type!', 'code': 'INVALID_TYPE'})
     
     try:
         verificationCodeFactory = VerificationCodeFactory()
         user = UserFactory()
     except:
-        return jsonify({'error': True, 'message': 'Unable to initialize.'})
+        return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
 
     verificationCodeInDb = verificationCodeFactory.getVerificationCode(jsonData['email'])
+    # Check if the verification code exists in the database.
     if not verificationCodeInDb:
-        return jsonify({'error': True, 'message': 'Verification code for this user does not exist!'})
-
+        return jsonify({'error': True, 'message': 'Verification code for this user does not exist!', 'code': 'DOES_NOT_EXIST'})
+    
+    # Check if provide verification code matches with the one in the database.
     if verificationCodeInDb['verificationCode'] != jsonData['verificationCode']:
-        return jsonify({'error': True, 'message': 'Code does not match!'})
+        return jsonify({'error': True, 'message': 'Code does not match!', 'code': 'DOES_NOT_MATCH'})
+    
+    # Check if the verification code has expired.
+    if verificationCodeFactory.verificationCodeHasExpired(jsonData['email']):
+        return jsonify({'error': True, 'message': 'Verification code has expired.', 'code': 'EXPIRED'})
     
     try:
+        # Update the user account status to verfied.
         user.updateUserAccountStatusToVerfied(jsonData['email'])
     except:
-        return jsonify({'error': True, 'message': 'Could not update the account status!'})
+        return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
     
     try:
+        # Delete the verification code from the db table.
         verificationCodeFactory.deleteVerificationCode(jsonData['email'])
     except:
-        return jsonify({'error': True, 'message': 'Could not delete verification code from db!'})
+        return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
     
-    return jsonify({'error': False, 'message': 'Email address is now verified!'})
+    return jsonify({'error': False, 'message': 'Account status is set to verified!', 'code': 'SUCCESS'})
     
 
 @Routes.route('/login', methods=['POST'])
 def login():
     
     if not request.headers.get('Content-Type'):
-        return jsonify({'error': True, 'message': 'Forbidden. Invalid content-type'}), 403
-    
+        return jsonify({'error': True, 'message': 'Missing required headers!', 'code': 'MISSING_REQUIRED_HEADERS'})
     
     jsonData = request.get_json()
 
-    if not jsonData:
-        return jsonify({'error': True, 'message': 'Missing data. Not Acceptable'})
+    if not jsonData or 'email' not in jsonData or 'password' not in jsonData:
+         return jsonify({'error': True, 'message': 'Not accepted!', 'code': 'MISSING_REQUIRED_KEYS'})
         
-    if 'email' not in jsonData or 'password' not in jsonData:
-        return jsonify({'error': True, 'message': 'Missing data. Not Acceptable'})
-    
     if not jsonData['email'] or not jsonData['password']:
-        return jsonify({'error': True, 'message': 'Email/Password fields cannot be empty!'})
+        return jsonify({'error': True, 'message': 'Empty values in input field', 'code': 'MISSING_REQUIRED_VALUES'})
+    
+    if not isinstance(jsonData['email'], str) or not isinstance(jsonData['password'], str):
+        return jsonify({'error': True, 'message': 'Recieved invalid value type!', 'code': 'INVALID_TYPE'})
 
     try:
         user = UserFactory()
         sessionFactory = SessionFactory()
     except:
-        return jsonify({'error': True, 'message': 'Can\'t initialize db tables!'})
+        return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
 
     if not user.userAlreadyExistsInDB(jsonData['email']):
         return jsonify({'error': True, 'message': 'User not found. Please register!'})
@@ -171,6 +187,58 @@ def login():
                 )
     user.updateLastLoggedIn(jsonData['email'])
     #res.headers.add('Access-Control-Allow-Origin', '127.0.0.1:5500')
+    return res
+    
+
+@Routes.route('/logout', methods=['GET'])
+def logout():
+
+    if not request.cookies.get('appSessionId'):
+        return jsonify({'error': True, 'message': 'Missing cookies'})
+    
+    cookieSessionId = request.cookies.get('appSessionId')
+
+    try:
+        sessionFactory = SessionFactory()
+    except:
+        return jsonify({'error': True, 'message': 'Can\'t initialize session!'})
+    
+    if not sessionFactory.sessionIdExists(cookieSessionId):
+        res = make_response(jsonify({'error': True, 'message': 'Did not receive any cookie!'}))
+        return res
+    
+   
+    sessionFactory.deleteSession(cookieSessionId)
+    
+    listOfCookies = [
+        {
+            'key': "appSessionId", 
+            'value':"",
+            'expires': 0,
+            'secure':False,
+            'httponly':True,
+            'domain':CLIENT_DOMAIN  
+        },
+        {
+            'key': "appUserEmail", 
+            'value':"",
+            'expires': 0,
+            'secure':False,
+            'httponly':True,
+            'domain':CLIENT_DOMAIN  
+        }
+    ]
+    #Invalidate cookie on client side.
+    res = make_response(jsonify({'error': False, 'message': 'User logged out!'}))
+    for cookie in listOfCookies:
+        res.set_cookie(
+            key=cookie['key'], 
+            value=cookie['value'],
+            expires=cookie['expires'],
+            secure=cookie['secure'],
+            httponly=cookie['httponly'],
+            domain=cookie['domain']
+        )
     return res
     
 
@@ -323,58 +391,10 @@ def delete_user():
         )
     return res
 
-
-@Routes.route('/logout', methods=['GET'])
-def logout():
-
-    if not request.cookies.get('appSessionId'):
-        return jsonify({'error': True, 'message': 'Missing cookies'})
-    
-    cookieSessionId = request.cookies.get('appSessionId')
-
-    try:
-        sessionFactory = SessionFactory()
-    except:
-        return jsonify({'error': True, 'message': 'Can\'t initialize session!'})
-    
-    if not sessionFactory.sessionIdExists(cookieSessionId):
-        res = make_response(jsonify({'error': True, 'message': 'Did not receive any cookie!'}))
-        return res
-    
-   
-    sessionFactory.deleteSession(cookieSessionId)
-    
-    listOfCookies = [
-        {
-            'key': "appSessionId", 
-            'value':"",
-            'expires': 0,
-            'secure':False,
-            'httponly':True,
-            'domain':CLIENT_DOMAIN  
-        },
-        {
-            'key': "appUserEmail", 
-            'value':"",
-            'expires': 0,
-            'secure':False,
-            'httponly':True,
-            'domain':CLIENT_DOMAIN  
-        }
-    ]
-    #Invalidate cookie on client side.
-    res = make_response(jsonify({'error': False, 'message': 'User logged out!'}))
-    for cookie in listOfCookies:
-        res.set_cookie(
-            key=cookie['key'], 
-            value=cookie['value'],
-            expires=cookie['expires'],
-            secure=cookie['secure'],
-            httponly=cookie['httponly'],
-            domain=cookie['domain']
-        )
-    return res
-    
+#TODO
+@Routes.route('/request-new-verification-code', methods=['POST'])
+def request_new_verification_code():
+    pass
 
 
 def getPublicIpAddressOfClient():

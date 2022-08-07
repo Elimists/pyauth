@@ -1,5 +1,5 @@
-from unittest import result
 from .DBConnector import DBConnector
+from datetime import timedelta
 
 class VerificationCodeFactory:
 
@@ -7,14 +7,16 @@ class VerificationCodeFactory:
         self.db_con = DBConnector()
 
     def saveVerificationCode(self, email, verificationCode):
+        currentDBTime = self.db_con.getCurrentDBDateTime()[0][0] 
+        expiresOn = currentDBTime + timedelta(minutes=20)
         sql = {
             'statement': ("INSERT INTO verification_codes "
-                            "(userEmail, verificationCode) "
-                            "VALUES (%s, %s)"),
-            'values': (email, verificationCode)
+                            "(userEmail, verificationCode, expiresOn) "
+                            "VALUES (%s, %s, %s)"),
+            'values': (email, verificationCode, expiresOn)
         }
         self.db_con.execute(sql)
-    
+        
     
     def updateVerificationCode(self, email, verificationCode):
         sql = {
@@ -46,3 +48,19 @@ class VerificationCodeFactory:
             'values': [email]
         }
         self.db_con.execute(sql)
+        
+    def verificationCodeHasExpired(self, email):
+        sql = {
+            'statement': ("SELECT expiresOn FROM verification_codes "
+                          "WHERE userEmail = %s"),
+            'values': [email]
+        }
+        expiryTime = self.db_con.fetch(sql)[0][0]
+        currentDBTime = self.db_con.getCurrentDBDateTime()[0][0] 
+        if currentDBTime <= expiryTime:
+            return False
+        return True
+        
+
+#vf = VerificationCodeFactory()
+#vf.saveVerificationCode('pandey.pran@gmail.com', 'DK4RKS')
