@@ -2,13 +2,13 @@ from functools import wraps
 from flask import request, jsonify, make_response
 from Database import SessionFactory
 
-
+#TODO - should also verify is user email and session id match
 def is_user_authorized(f):
     
     @wraps(f)
     def decorator(*args, **kwargs):
         if not request.cookies.get('appSessionId'):
-            return jsonify({'error': True, 'message': 'Cookeies are missing. Not authorized!'})
+            return jsonify({'error': True, 'message': 'Cookies are missing. Not authorized!'})
 
         cookieSessionId = request.cookies.get('appSessionId')
         try:
