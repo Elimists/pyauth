@@ -1,15 +1,18 @@
 
 import mysql.connector
-
-
+from configparser import *
+import os
+# MY_SQL_DB
+# MY_SQL_PASSWORD
+# MY_SQL_USER
 """
 DBConnector Class - Handles the connecting/disconnecting to database during fetching
 and executing sql statements.
 """
 class DBConnector:
     
-    user = "pranp"
-    password = "abc@123"
+    user = "pranp"#os.getenv('MY_SQL_USER')
+    password = "abc@123" #os.getenv('MY_SQL_PASSWORD')
     host = "127.0.0.1"
     database = "mmcschema"
     raise_on_warnings = True
