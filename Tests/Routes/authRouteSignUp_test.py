@@ -4,7 +4,7 @@ import json
 
 class RouteTest(unittest.TestCase):
     
-    API_URL = "http://127.0.0.1:5000"
+    API_URL = "http://127.0.0.1:5000/api"
     SIGNUP_URL = API_URL + "/signup"
     
     def test_signup_route(self):
