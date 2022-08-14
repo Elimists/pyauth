@@ -1,5 +1,7 @@
+
 from flask import Flask
 from flask_cors import CORS
+
 
 Routes = Flask(__name__)
 cors = CORS(Routes, resources={
@@ -7,5 +9,5 @@ cors = CORS(Routes, resources={
     }
 )
 
-from Routes import auth_routes
-from Routes import home_routes
+
+from Routes import Auth

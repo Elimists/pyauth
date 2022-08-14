@@ -1,5 +1,4 @@
 import unittest
-from wsgiref import headers
 import requests
 import json
 
@@ -10,7 +9,7 @@ class RouteTest(unittest.TestCase):
     
     def test_signup_route(self):
         r = requests.get(self.SIGNUP_URL)
-        self.assertEqual(r.status_code, 405)
+        self.assertEqual(r.status_code, 405, msg="Incorrect HTTP METHOD")
     
     #Testing wrong headers
     def test_header_result(self):
@@ -67,6 +66,26 @@ class RouteTest(unittest.TestCase):
         
         r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
         self.assertEqual(r['code'], "WEAK_PASSWORD")
-
+    
+    #Testing user already exists
+    def test_user_exists(self):
+        payload = {'email': "pandey.pran@gmail.com", 'name': "Pran Pandey", 'password': "Abc@123!"}
+        headers = {'Content-Type': 'application/json'}
+        
+        r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
+        self.assertEqual(r['code'], "DUPLICATE_USER")
+        
+    #Testing creating new user in db
+    def test_new_user_creation(self):
+        payload = {'email': "pranjal_pandey@hotmail.com", 'name': "Pranjal Pandey", 'password': "Abc@123!"}
+        headers = {'Content-Type': 'application/json'}
+        
+        r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
+        if r['code'] == "DUPLICATE_USER":
+            self.assertEqual(r['code'], "DUPLICATE_USER")
+        else:
+            self.assertEqual(r['code'], "SUCCESS")
+    
 if __name__ == '__main__':
     unittest.main()
+    

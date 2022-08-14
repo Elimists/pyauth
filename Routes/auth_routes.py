@@ -1,3 +1,4 @@
+"""
 from flask import request, jsonify, make_response
 from Routes import Routes
 from Tools import GeneratorTools as gt, PasswordTools as pt, StringTools as st
@@ -54,10 +55,10 @@ def register():
         user = UserFactory()
         verification = VerificationCodeFactory()
     except:
-        return jsonify({'error': True, 'message': 'Unable to initialize!', 'code': 'INIT_ERROR'})
+        return jsonify({'error': True, 'message': 'Unable to initialize!', 'code': 'INIT_ERROR'}), 500
 
     if user.userAlreadyExistsInDB(jsonData['email']):
-        return jsonify({'error': True, 'message': 'User already exists!', 'code': 'DUPLICATE_USER'})
+        return jsonify({'error': True, 'message': 'User already exists!', 'code': 'DUPLICATE_USER'}), 200
     
     hashedPassword = passwordString.encrypt_password()
     verificationCode = gt.verification_code_generator()
@@ -451,7 +452,9 @@ def method_not_allowed_handler(e):
 
 
 def getPublicIpAddressOfClient():
+
     if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
         return request.environ['REMOTE_ADDR']
     else:
         return request.environ['HTTP_X_FORWARDED_FOR']
+"""
