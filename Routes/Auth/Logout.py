@@ -4,7 +4,7 @@ from Database import SessionFactory
 
 CLIENT_DOMAIN = "http://127.0.0.1"
 
-@Routes.route('/logout', methods=['GET'])
+@Routes.route('/api/logout', methods=['GET'])
 def logout():
 
     if not request.cookies.get('appSessionId'):
