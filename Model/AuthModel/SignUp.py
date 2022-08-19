@@ -11,6 +11,3 @@ class SignUp(UserModel.User):
     
     def getPassword(self) -> bytes:
         return self.password
-    
-    def setPassword(self, password: str) -> None:
-        self.password = password
