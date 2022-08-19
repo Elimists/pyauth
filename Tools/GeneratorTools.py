@@ -2,7 +2,6 @@ import random, string, secrets
 
 class GeneratorTools:
 
-
     def verification_code_generator():
         return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
 

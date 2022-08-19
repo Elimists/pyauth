@@ -14,6 +14,9 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
+@limiter.request_filter
+def ip_whitelist():
+    return request.remote_addr == "127.0.0.1"
 
 @Routes.route('/api/login', methods=['POST'])
 @limiter.limit("7 / 2 minute")

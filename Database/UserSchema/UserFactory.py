@@ -1,21 +1,24 @@
 from .DBConnector import DBConnector
 
-
-class UserFactory:
+class UserFactory():
 
     def __init__(self):
         self.db_con = DBConnector()
 
 
-    def createUser(self, email: str, name: str, password: str):
+    def createUser(self, user) -> dict:
         sql = {
             'statement': ("INSERT INTO users "
-                            "(email, name, password, accountStatus) "
-                            "VALUES (%s, %s, %s, %s)"),
-            'values': (email, name, password, 'Unverified')
+                            "(email, password, accountStatus) "
+                            "VALUES (%s, %s, %s)"),
+            'values': (user.getEmail(), user.getUserPassword(), user.getAccountStatus())
         }
         
-        self.db_con.execute(sql)
+        try:
+            self.db_con.execute(sql)
+            return {"error": False, "message": "User created successfully", "code": "SUCCESS"}
+        except Exception as e:
+            return {'error': True, 'message': 'Could not create user', 'code': 'DATABASE_ERROR'}
      
 
     def getUserByEmail(self, email: str):
@@ -44,11 +47,11 @@ class UserFactory:
             return {'error': True, 'message': 'Database error!', 'code': errorDict['errno']}
 
     
-    def userAlreadyExistsInDB(self, email: str):
+    def userAlreadyExistsInDB(self):
         sql = {
             'statement': ("SELECT email, name FROM users "
                             "WHERE email = %s"),
-            'values': [email]
+            'values': [self.email]
         }
         result = self.db_con.fetch(sql)
         if not result or len(result) == 0:
@@ -158,4 +161,5 @@ class UserFactory:
             'values': [email]
         }
         self.db_con.execute(sql)
+          
           
