@@ -11,7 +11,7 @@ class UserFactory():
             'statement': ("INSERT INTO users "
                             "(email, password, accountStatus) "
                             "VALUES (%s, %s, %s)"),
-            'values': (user.getEmail(), user.getUserPassword(), user.getAccountStatus())
+            'values': (user.getEmail(), user.getPassword(), user.getAccountStatus())
         }
         
         try:
@@ -47,11 +47,11 @@ class UserFactory():
             return {'error': True, 'message': 'Database error!', 'code': errorDict['errno']}
 
     
-    def userAlreadyExistsInDB(self):
+    def userAlreadyExistsInDB(self, email):
         sql = {
             'statement': ("SELECT email, name FROM users "
                             "WHERE email = %s"),
-            'values': [self.email]
+            'values': [email]
         }
         result = self.db_con.fetch(sql)
         if not result or len(result) == 0:

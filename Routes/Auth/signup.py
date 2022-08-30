@@ -4,7 +4,7 @@ from Tools import GeneratorTools as gt, PasswordTools as pt, StringTools as st
 from Database import UserFactory, VerificationCodeFactory
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from Model import UserSignUp
+from Model import AuthModel
 
 limiter = Limiter(
     Routes,
@@ -48,27 +48,25 @@ def signup():
     if not passwordString.is_password_strong():
         return jsonify({'error': True, 'message': 'Password needs to be stronger!', 'code': 'WEAK_PASSWORD'}), 400
 
-    #hashedPassword = passwordString.encrypt_password()
-    theUser = UserSignUp(jsonData['email'], jsonData['password'])
+    theUser = AuthModel.SignUp(jsonData['email'], jsonData['password'])
+    verificationCodeObject = AuthModel.VerificationCode(theUser.getEmail())
     try:
         userDB = UserFactory()
-        verification = VerificationCodeFactory()
+        verificationCodeFactory = VerificationCodeFactory()
     except:
         return jsonify({'error': True, 'message': 'Unable to initialize!', 'code': 'INIT_ERROR'}), 500
 
-    if userDB.userAlreadyExistsInDB():
+    if userDB.userAlreadyExistsInDB(jsonData['email']):
         return jsonify({'error': True, 'message': 'User already exists!', 'code': 'DUPLICATE_USER'}), 200
     
-    userCreationResult = userDB.createUser(theUser)
-    
-    if userCreationResult['error']:
-        return userCreationResult
+  
     
     try:
-        verification.saveVerificationCode(jsonData['email'], theUser.getVerificationCode())
+        userDB.createUser(theUser)
+        verificationCodeFactory.saveVerificationCode(theUser.getEmail, verificationCodeObject.getVerificationCode())
     except:
         userDB.deleteUser(theUser.getEmail())
-        verification.deleteVerificationCode(theUser.getEmail())
+        verificationCodeFactory.deleteVerificationCode(theUser.getEmail())
         return jsonify({'error': True, 'message': 'Unable to initialize database!', 'code': 'DB_TABLE_ERROR'})
     
     return jsonify({'error': False, 'message': 'User created successfully!', 'code': 'SUCCESS'})

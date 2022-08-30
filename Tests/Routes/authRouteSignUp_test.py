@@ -74,13 +74,14 @@ class RouteTest(unittest.TestCase):
         
         r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
         self.assertEqual(r['code'], "DUPLICATE_USER")
-        
+
     #Testing creating new user in db
     def test_new_user_creation(self):
-        payload = {'email': "pranjal_pandey@hotmail.com", 'name': "Pranjal Pandey", 'password': "Abc@123!"}
+        payload = {'email': "landa@neilsquire.com", 'name': "Pranjal Pandey", 'password': "Abc@123!"}
         headers = {'Content-Type': 'application/json'}
         
         r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
+        print(r['code'])
         if r['code'] == "DUPLICATE_USER":
             self.assertEqual(r['code'], "DUPLICATE_USER")
         else:
