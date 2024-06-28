@@ -1,8 +1,9 @@
 from flask import request, jsonify, make_response
 from Routes import Routes
 from Database import SessionFactory
+import os
 
-CLIENT_DOMAIN = "http://127.0.0.1"
+CLIENT_DOMAIN = os.getenv('CLIENT_DOMAIN')
 
 @Routes.route('/api/logout', methods=['GET'])
 def logout():

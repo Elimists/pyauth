@@ -1,10 +1,11 @@
 import unittest
 import requests
 import json
+import os
 
 class RouteTest(unittest.TestCase):
     
-    API_URL = "http://127.0.0.1:5000/api"
+    API_URL = os.getenv('API_URL')
     SIGNUP_URL = API_URL + "/signup"
     
     def test_signup_route(self):

@@ -4,9 +4,10 @@ from Tools import GeneratorTools as gt, PasswordTools as pt
 from Database import UserFactory, SessionFactory
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import os
 
 
-CLIENT_DOMAIN = "http://127.0.0.1"
+CLIENT_DOMAIN = os.getenv('CLIENT_DOMAIN')
 
 limiter = Limiter(
     Routes,
@@ -16,7 +17,7 @@ limiter = Limiter(
 
 @limiter.request_filter
 def ip_whitelist():
-    return request.remote_addr == "127.0.0.1"
+    return request.remote_addr == os.getenv('IP_WHITELIST')
 
 @Routes.route('/api/login', methods=['POST'])
 @limiter.limit("7 / 2 minute")

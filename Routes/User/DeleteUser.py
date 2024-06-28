@@ -5,9 +5,9 @@ from Database import UserFactory, VerificationCodeFactory, SessionFactory, Passw
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from Decorators import is_user_authorized
+import os
 
-
-CLIENT_DOMAIN = "http://127.0.0.1"
+CLIENT_DOMAIN = os.getenv('CLIENT_DOMAIN')
 
 
 @Routes.route('/delete-user', methods=['DELETE'])

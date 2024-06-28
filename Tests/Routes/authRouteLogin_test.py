@@ -4,7 +4,7 @@ import json
 
 class RouteTest(unittest.TestCase):
     
-    API_URL = "http://127.0.0.1:5000/api"
+    API_URL = os.getenv('API_URL')
     SIGNUP_URL = API_URL + "/login"
     payload = {'email': "albus.dumbledore@hogsmede.com", 'password': "Albus_123!"}
     missingPayload = {'email': "", 'password': ""}
