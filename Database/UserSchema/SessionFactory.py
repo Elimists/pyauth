@@ -141,10 +141,3 @@ class SessionFactory:
         }
 
         self.db_con.execute(sql)
-
-
-sf = SessionFactory()
-#sf.createSession('akdurklwkKlkjd', 'pranp@neilsquire.ca', '127.0.0.1')
-#sf.isSessionAboutToExpire('akdurklwkKlkjd')
-#print(sf.sessionHasExpired('akdurklwkKlkjd'))
-sf.getSessionDataByEmailAndIp("albus.dumbledore@hogwarts.mg", "127.0.0.1")

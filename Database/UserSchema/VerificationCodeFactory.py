@@ -60,7 +60,3 @@ class VerificationCodeFactory:
         if currentDBTime <= expiryTime:
             return False
         return True
-        
-
-#vf = VerificationCodeFactory()
-#vf.saveVerificationCode('pandey.pran@gmail.com', 'DK4RKS')

@@ -161,5 +161,3 @@ class UserFactory():
             'values': [email]
         }
         self.db_con.execute(sql)
-          
-          

@@ -73,6 +73,3 @@ class PasswordResetFactory:
         }
 
         self.db_con.execute(sql)
-
-#prf = PasswordResetFactory("pranp@neilsquire.ca")
-#print(prf.isTokenExpired())
