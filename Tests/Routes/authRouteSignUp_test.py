@@ -45,7 +45,7 @@ class RouteTest(unittest.TestCase):
         
     #Testing for invalid email
     def test_invalid_email(self):
-        payload = {'email': "asldkfjsld3!la.com", 'name': "Pran Pandey", 'password': "helloWorld!12"}
+        payload = {'email': "asldkfjsld3!la.com", 'name': "Albus Dumbledore", 'password': "helloWorld!12"}
         headers = {'Content-Type': 'application/json'}
         
         r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
@@ -53,7 +53,7 @@ class RouteTest(unittest.TestCase):
     
     #Testing for invalid name
     def test_invalid_name(self):
-        payload = {'email': "pran.pandey@hotmail.com", 'name': "Pran{3221/SD", 'password': "helloWorld!12"}
+        payload = {'email': "albus.dumbledore@hotmail.com", 'name': "Albus{3221/SD", 'password': "helloWorld!12"}
         headers = {'Content-Type': 'application/json'}
         
         r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
@@ -61,7 +61,7 @@ class RouteTest(unittest.TestCase):
             
     #Testing for weak password
     def test_weak_password(self):
-        payload = {'email': "pran.pandey@hotmail.com", 'name': "Pran Pandey", 'password': "asd12"}
+        payload = {'email': "albus.dumbledore@hotmail.com", 'name': "Albus Dumbledore", 'password': "asd12"}
         headers = {'Content-Type': 'application/json'}
         
         r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
@@ -69,7 +69,7 @@ class RouteTest(unittest.TestCase):
     
     #Testing user already exists
     def test_user_exists(self):
-        payload = {'email': "pandey.pran@gmail.com", 'name': "Pran Pandey", 'password': "Abc@123!"}
+        payload = {'email': "dumbledore.albus@gmail.com", 'name': "Albus Dumbledore", 'password': "Abc@123!"}
         headers = {'Content-Type': 'application/json'}
         
         r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()
@@ -77,7 +77,7 @@ class RouteTest(unittest.TestCase):
         
     #Testing creating new user in db
     def test_new_user_creation(self):
-        payload = {'email': "pranjal_pandey@hotmail.com", 'name': "Pranjal Pandey", 'password': "Abc@123!"}
+        payload = {'email': "albus.dumbledore@hotmail.com", 'name': "Albus Dumbledore", 'password': "Abc@123!"}
         headers = {'Content-Type': 'application/json'}
         
         r = requests.post(self.SIGNUP_URL, data=json.dumps(payload), headers=headers).json()

@@ -6,7 +6,7 @@ class RouteTest(unittest.TestCase):
     
     API_URL = "http://127.0.0.1:5000/api"
     SIGNUP_URL = API_URL + "/login"
-    payload = {'email': "pandey.pran@gmail.com", 'password': "Abc@123!"}
+    payload = {'email': "albus.dumbledore@hogsmede.com", 'password': "Albus_123!"}
     missingPayload = {'email': "", 'password': ""}
     invalidPayload = {'email': 1234, 'password': True}
     wrongHeaders = {'wrong-header-type': 'application/xml'}
@@ -37,6 +37,5 @@ class RouteTest(unittest.TestCase):
     
 
 if __name__ == '__main__':
-    #loginTest = RouteTest('pandey.pran@gmail.com', 'Abc@123!')
     unittest.main()
     
