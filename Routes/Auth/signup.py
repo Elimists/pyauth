@@ -5,6 +5,7 @@ from Database import UserFactory, VerificationCodeFactory
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from Model import UserSignUp
+import os
 
 limiter = Limiter(
     Routes,
@@ -15,7 +16,7 @@ limiter = Limiter(
 # Removes limiter for localhost.
 @limiter.request_filter
 def ip_whitelist():
-    return request.remote_addr == "127.0.0.1"
+    return request.remote_addr == os.geteng('IP_WHITELIST')
 
 
 @Routes.route('/api/signup', methods=['POST'])
